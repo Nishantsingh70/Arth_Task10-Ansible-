@@ -1,0 +1,77 @@
+- hosts: all
+  vars:
+          - source_iso: "/root/arth-ws/rhel-8.0-x86_64-dvd.iso"
+          - dest_iso: "/opt/rhel-8.0-x86_64-dvd.iso"
+          - repo_mount_path: "/mnt/dvd"
+  tasks:
+          - name: Copy the ISO file to remote location
+            copy:
+                    src: "{{source_iso}}"
+                    dest: "{{dest_iso}}"
+                    force: no
+
+          - name: Mount the ISO file permanently
+            lineinfile:
+                    dest: /etc/rc.d/rc.local
+                    line: mount /opt/rhel-8.0-x86_64-dvd.iso /mnt/dvd
+                    state: present
+                    create: yes
+
+          - name: Make the file(/etc/rc.d/rc.local) executable
+            command: chmod +x /etc/rc.d/rc.local
+
+          - name: Add repository
+            yum_repository:
+                    name: dvd1
+                    description: AppStream repository
+                    baseurl: "file://{{repo_mount_path}}/AppStream"
+                    enabled: yes
+                    gpgcheck: no
+
+          - name: Add repository
+            yum_repository:
+                    name: dvd2
+                    description: BaseOS repository
+                    baseurl: "file://{{repo_mount_path}}/BaseOS"
+                    enabled: yes
+                    gpgcheck: no
+
+          - name: Add_docker_repository
+            yum_repository:
+                    name: docker
+                    description: Docker repo
+                    baseurl: "https://download.docker.com/linux/centos/7/x86_64/stable/"
+                    gpgcheck: no
+
+          - name: Install Docker
+            package:
+                    name: "docker-ce-18.06.3.ce-3.el7.x86_64"
+                    state: present
+
+          - name: Start the Docker service
+            service:
+                    name: "docker"
+                    state: started
+
+          - pip:
+                  name: docker
+
+          - name: Pull the httpd Docker Image from dockerhub
+            docker_image:
+                    name: "httpd"
+                    source: pull
+
+          - name: Copy webpage from C.N. to M.N.
+            copy:
+                    src: "/root/arth-ws/webpage.html"
+                    dest: "/home"
+
+          - name: Container creation
+            docker_container:
+                    name: webos
+                    image: httpd
+                    state: started
+                    ports:
+                            - "7000:80"
+                    volumes:
+                            - /home:/usr/local/apache2/htdocs/
