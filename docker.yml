@@ -9,7 +9,13 @@
                     src: "{{source_iso}}"
                     dest: "{{dest_iso}}"
                     force: no
-
+          
+          - mount: 
+                    src: "{{dest_iso}}"
+                    path: "{{repo_mount_path}}"
+                    state: mounted
+                    fstype: "iso9660"
+                    
           - name: Mount the ISO file permanently
             lineinfile:
                     dest: /etc/rc.d/rc.local
